@@ -1,0 +1,5 @@
+.stack-work/
+tsearch.cabal
+*~
+.DS_Store
+*.dylib
