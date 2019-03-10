@@ -3,3 +3,4 @@ tsearch.cabal
 *~
 .DS_Store
 *.dylib
+lib

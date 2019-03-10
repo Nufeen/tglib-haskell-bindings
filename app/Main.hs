@@ -7,25 +7,39 @@ import Foreign.C.String
 import Foreign.C.Types
 
 import Control.Monad (forever)
+import Control.Exception
 
 type Client = Ptr ()
+type Timeout = Double
 
-foreign import ccall "libtdjson td_json_client_create" c_create :: Client
-foreign import ccall "libtdjson td_json_client_send" c_send :: Client -> CString -> IO()
-foreign import ccall "libtdjson td_json_client_receive" c_receive :: Client -> Double -> IO CString
+foreign import ccall "libtdjson td_json_client_create" c_create :: IO Client
+foreign import ccall "libtdjson td_json_client_send" c_send :: Client -> CString -> IO ()
+foreign import ccall "libtdjson td_json_client_receive" c_receive :: Client -> Timeout -> IO CString
+foreign import ccall "libtdjson td_json_client_execute" c_execute :: Client -> CString -> IO ()
+foreign import ccall "libtdjson td_json_client_destroy" c_destroy :: Client -> IO ()
 
-testQuery = "{\"@type\": \"getAuthorizationState\", \"@extra\": 1.01234}"
+testQuery1 = "{\"@type\": \"getAuthorizationState\", \"@extra\": 1.01234}"
+testQuery2 = " { \"@type\": \"getTextEntities\", \"text\": \"@telegram /test_command https://telegram.org telegram.me\" } "
 
 main :: IO ()
 main = do
-  send testQuery
-  getAnswer >>= peekCString >>= print
+  client <- create
+  send client testQuery1
+  execute client testQuery2
+  receive client >>= peekCString >>= putStrLn
+  destroy client
 
-client :: Client
-client = c_create
+create :: IO Client
+create = c_create
 
-send :: String -> IO ()
-send x = (newCString x) >>= c_send client
+send :: Client -> String -> IO ()
+send c s = (newCString s) >>= c_send c
 
-getAnswer :: IO CString
-getAnswer  = c_receive client 1.0
+execute :: Client -> String -> IO ()
+execute c s = (newCString s) >>= c_execute c
+
+receive :: Client -> IO CString
+receive c = c_receive c 1.0
+
+destroy :: Client -> IO ()
+destroy c = c_destroy c
